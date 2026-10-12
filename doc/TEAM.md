@@ -75,4 +75,5 @@ gemini-3.5-flash-lite; evaluator RAGAS dùng gemini-3.1-flash-lite cùng embeddi
 
 ## Cập nhật sau khi nộp
 
-Chưa có cập nhật sau deadline. SHA của commit chứa bài làm sẽ được ghi tại đây ngay sau khi push.
+Chưa có cập nhật sau deadline. Commit chứa toàn bộ mã, artifacts và báo cáo: `e5fbb23a9a7df2d93efcc17583229eac041cd7d3`
+(commit kế tiếp trên `main` chỉ ghi SHA này vào TEAM.md).
