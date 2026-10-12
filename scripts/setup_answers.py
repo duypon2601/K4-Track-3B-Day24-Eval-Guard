@@ -94,7 +94,11 @@ def run_query(q: str, search, reranker, top_k: int, client=None) -> tuple[str, l
         try:
             if client is None:
                 from openai import OpenAI
-                client = OpenAI()
+                client = OpenAI(max_retries=8)
+            from src.llm import get_rate_limiter
+            limiter = get_rate_limiter()  # None khi LLM_RPM=0
+            if limiter is not None:
+                limiter.acquire(blocking=True)
             ctx = "\n\n".join(contexts)
             resp = client.chat.completions.create(
                 model=GENERATION_MODEL,
@@ -142,7 +146,7 @@ def main(argv=None):
     client = None
     if OPENAI_API_KEY:
         from openai import OpenAI
-        client = OpenAI()
+        client = OpenAI(max_retries=8)  # chịu 429 của free tier thay vì rơi về fallback
     t_start = time.time()
 
     for i, item in enumerate(test_set):

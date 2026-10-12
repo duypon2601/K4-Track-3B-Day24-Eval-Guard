@@ -10,3 +10,4 @@ nemoguardrails==0.10.0
 openai==1.109.1
 annoy==1.17.3
 numpy==1.26.4
+pyarrow<20  # pyarrow mới hơn yêu cầu NumPy 2, xung đột numpy==1.26.4 đã pin

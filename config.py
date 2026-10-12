@@ -5,8 +5,26 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# --- API Keys ---
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+# --- API Keys / LLM provider ---
+# Gemini được gọi qua endpoint tương thích OpenAI: OPENAI_API_KEY/OPENAI_BASE_URL trỏ sang
+# Gemini để OpenAI(), langchain-openai (RAGAS) và NeMo engine=openai chạy không cần sửa.
+# OPENAI_API_KEY ở đây nghĩa là "có LLM key", không khẳng định provider là OpenAI.
+GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
+GEMINI_API_KEY = (os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY") or "").strip()
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "").strip()
+
+if GEMINI_API_KEY:
+    LLM_PROVIDER = "gemini"
+    LLM_MODEL = os.getenv("LLM_MODEL") or "gemini-3.5-flash-lite"
+    LLM_RPM = int(os.getenv("LLM_RPM") or "12")  # free tier ~15 request/phút; 0 = không giới hạn
+    OPENAI_API_KEY = GEMINI_API_KEY
+    os.environ["OPENAI_API_KEY"] = GEMINI_API_KEY
+    os.environ["OPENAI_BASE_URL"] = GEMINI_BASE_URL
+    os.environ["OPENAI_API_BASE"] = GEMINI_BASE_URL
+else:
+    LLM_PROVIDER = "openai" if OPENAI_API_KEY else ""
+    LLM_MODEL = os.getenv("LLM_MODEL") or "gpt-4o-mini"
+    LLM_RPM = int(os.getenv("LLM_RPM") or "0")
 HF_TOKEN = os.getenv("HF_TOKEN", "")  # Optional: for HuggingFace models
 
 # --- Qdrant (same as Day 18) ---
@@ -45,8 +63,12 @@ GUARDRAILS_CONFIG_DIR = os.path.join(ROOT_DIR, "guardrails")
 PAIR_QUESTION_IDS = (1, 5, 12, 21, 41)
 
 # --- LLM Judge ---
-GENERATION_MODEL = "gpt-4o-mini"
-JUDGE_MODEL = "gpt-4o-mini"
+GENERATION_MODEL = LLM_MODEL
+JUDGE_MODEL = LLM_MODEL
+GUARD_MODEL = LLM_MODEL  # ghi đè model `main` của guardrails/config.yml khi tạo NeMo
+# Evaluator RAGAS có thể dùng model khác generation (hạn mức free tier tính riêng theo model).
+EVALUATOR_MODEL = os.getenv("EVALUATOR_MODEL") or LLM_MODEL
+RAGAS_CACHE_PATH = os.path.join(ROOT_DIR, ".cache", "ragas_scores.json")
 
 # --- Guardrail latency budget ---
 LATENCY_BUDGET_P95_MS = 500  # Full guard target; Task 12 currently measures input guards only.
