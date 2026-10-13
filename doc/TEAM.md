@@ -113,3 +113,8 @@ Commit baseline chứa mã, artifacts và báo cáo: `e5fbb23a9a7df2d93efcc17583
 cải tiến retrieval và lưu riêng kết quả smoke 3 câu. Cập nhật này không thay thế commit baseline
 đã ghi ở trên hoặc xác nhận bản nộp mới. Giữ nguyên bốn artifacts baseline; trước khi nộp kết quả
 đầy đủ của pipeline cải tiến phải sinh lại 50 answers, chạy A/B thật và cập nhật báo cáo đồng bộ.
+
+Commit cập nhật phần Phi, mã cải tiến và kết quả smoke:
+`1e038679c5d2677732b60002b15b809c7236b36d`, thời điểm 13/10/2026 11:04:41 (UTC+07:00).
+Commit kế tiếp chỉ ghi mốc này vào TEAM.md. Đây là bản cập nhật sau baseline, không trình bày
+như phần đã có trong lần nộp trước; việc dùng bản cập nhật để chấm theo quyết định của coach.
