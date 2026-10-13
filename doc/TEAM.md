@@ -8,16 +8,18 @@ Trưởng nhóm/người nộp: Trần Nguyễn Thái Duy – 2A202602991
 
 Ngày lab/deadline áp dụng: lab ngày 12/10/2026, deadline 11:59 ngày 13/10/2026 theo README — Asia/Ho_Chi_Minh (UTC+07:00)
 
-Commit dùng để chấm: HEAD của nhánh `main` tại thời điểm nộp; SHA của commit chứa toàn bộ mã,
-artifacts và báo cáo được ghi ở mục “Cập nhật sau khi nộp” cuối file.
+Commit bản baseline: SHA của commit chứa mã, artifacts và báo cáo gốc được ghi ở mục
+“Cập nhật sau khi nộp” cuối file. Phần cải tiến của Phi hiện là thay đổi local, chưa commit/push.
 
-Mỗi nhóm nộp một repo. Nhóm này chỉ có một thành viên, làm toàn bộ ba phase.
+Mỗi nhóm nộp một repo. Nhóm hiện có hai thành viên: Duy hoàn thành bản baseline ba phase;
+Phi bổ sung cải tiến retrieval Phase A và khả năng kiểm chứng trên Windows.
 
 ## Thành viên và phân công
 
 | STT | Họ và tên | MSSV | Vai trò / công việc thật | Bằng chứng |
 |---|---|---|---|---|
 | 1 | Trần Nguyễn Thái Duy | 2A202602991 | Tích hợp pipeline m1–m5; Phase A, B, C; chạy batch live; ba báo cáo | Lịch sử commit trên `main`; `artifacts/*.json`; `doc/reports/*.md` |
+| 2 | Nguyễn Hồng Phi | 2A202602750 | Cải tiến parent-context retrieval và prompt generation; sửa hash LF/CRLF; bổ sung regression tests offline | `scripts/setup_answers.py`; `src/experiment_support.py`; `src/report_contracts.py`; `tests/test_pipeline_improvements.py`; `.gitattributes` |
 
 Người tích hợp/chạy batch/nộp link: Trần Nguyễn Thái Duy — chép và chỉnh m1–m5 từ repo Day 18 của
 chính mình, chạy `setup_answers.py` và ba phase với `--live`, nộp link repo.
@@ -42,7 +44,7 @@ gemini-3.5-flash-lite; evaluator RAGAS dùng gemini-3.1-flash-lite cùng embeddi
 
 ### TranNguyenThaiDuy-2A202602991
 
-- Phần được giao và phần thực tế đã làm: toàn bộ bài. Tích hợp `src/m1_chunking.py`–`m5_enrichment.py`
+- Phần được giao và phần thực tế đã làm: toàn bộ bản baseline trước lượt cải tiến của Phi. Tích hợp `src/m1_chunking.py`–`m5_enrichment.py`
   và `src/llm.py`; sửa `m4_eval.py` để trả `evaluator_models`, chấm theo lô có cache và không thay NaN
   bằng điểm giả; Task 1–4 trong `src/phase_a_ragas.py`; Task 5–8 trong `src/phase_b_judge.py`;
   Task 9a–12 trong `src/phase_c_guard.py`; cấu hình Gemini trong `config.py` và
@@ -73,7 +75,41 @@ gemini-3.5-flash-lite; evaluator RAGAS dùng gemini-3.1-flash-lite cùng embeddi
   lần chạy thật ở trên; kiểm chứng bằng `scripts/check_lab.py` (schema, hash nguồn, phép tính) và đọc
   lại answer/contexts của các câu bottom 10. Module m1–m5 lấy từ repo Day 18 của chính tác giả.
 
+### NguyenHongPhi-2A202602750
+
+- Phần thực tế đã làm: sửa source hash để LF/CRLF không gây stale reports giả; thêm
+  `.gitattributes` và ghi JSON với LF. Lưu raw parent context theo từng tài liệu vào metadata của
+  child chunk; bảo vệ source/parent metadata khi enrichment; rerank tối đa 10 candidates rồi chọn
+  tối đa 3 context khác nhau. Sửa prompt để trả lời từng phần có bằng chứng thay vì từ chối cả câu.
+- Bằng chứng: `.gitattributes`, `config.py`, `scripts/setup_answers.py`,
+  `src/experiment_support.py`, `src/report_contracts.py`, `tests/test_pipeline_improvements.py`;
+  `scripts/run_rag_smoke.py`, `tests/test_rag_smoke.py`, `artifacts/smoke_3q.json`; cập nhật hợp đồng
+  pipeline, hướng dẫn môi trường và phần cải tiến trong `doc/reports/failure_clusters.md`.
+- Cách kiểm tra: baseline có 86 tests offline đạt trên máy Windows/Python 3.11.0; bổ sung 13 cases
+  cho parent expansion, trùng parent_id giữa tài liệu, metadata enrichment, fallback, JSON LF,
+  hash xuyên nền tảng và phát hiện dữ liệu bị sửa; thêm 12 smoke-runner cases.
+  Ngày 13/10/2026 chạy `python scripts/check_lab.py --with-tests`:
+  111 passed, 3 integration tests deselected và 0 failed checks; không gọi API trong kiểm tra offline.
+  Chạy live `scripts/run_rag_smoke.py --live --question-ids 22 33 39`: cùng generation
+  `gemini-3.5-flash-lite`, evaluator `gemini-3.1-flash-lite` và embedding `BAAI/bge-m3` như baseline;
+  chấm lại 3 baseline answers và 3 answers mới trong cùng lượt. Mean mẫu 0.2856 → 0.7300
+  (+0.4444), lưu riêng `artifacts/smoke_3q.json` với status `complete`.
+- Điều đã học: parent_id cục bộ không đủ phân biệt các tài liệu; nhiều child cùng parent phải
+  được gom trước khi giới hạn số context. Hash khác do CRLF không đồng nghĩa dữ liệu đã đổi,
+  nhưng thay đổi nội dung vẫn phải bị checker phát hiện.
+- Môi trường/giới hạn: Windows, Python 3.11.0, virtualenv `.venv-smoke` riêng; pip check, import,
+  embedding/reranker cache và Qdrant v1.9.7 đã chạy được. Lượt live enrich/index 107 chunks, có
+  một lỗi parse JSON enrichment dùng fallback; hai PDF scan vẫn bị bỏ qua vì thiếu text layer.
+  Không thấy lỗi 429 trong lượt này. Chưa kiểm chứng full Phase C hoặc chạy lại đủ 50 câu; ba câu
+  được chọn từ nhóm yếu nên không đại diện toàn bộ tập. Câu 33 vẫn thiếu phụ cấp. Bốn JSON artifacts
+  bắt buộc vẫn là kết quả baseline của Duy, không phải kết quả của mã retrieval mới.
+- AI hỗ trợ: dùng Codex (OpenAI) để triển khai mã, regression tests và cập nhật tài liệu;
+  kiểm chứng bằng tests offline/checker, không tạo hoặc sửa số đo thực nghiệm bằng AI.
+
 ## Cập nhật sau khi nộp
 
-Chưa có cập nhật sau deadline. Commit chứa toàn bộ mã, artifacts và báo cáo: `e5fbb23a9a7df2d93efcc17583229eac041cd7d3`
-(commit kế tiếp trên `main` chỉ ghi SHA này vào TEAM.md).
+Commit baseline chứa mã, artifacts và báo cáo: `e5fbb23a9a7df2d93efcc17583229eac041cd7d3`
+(commit kế tiếp trên `main` chỉ ghi SHA này vào TEAM.md). Ngày 13/10/2026 bổ sung Phi, triển khai
+cải tiến retrieval và lưu riêng kết quả smoke 3 câu. Cập nhật này không thay thế commit baseline
+đã ghi ở trên hoặc xác nhận bản nộp mới. Giữ nguyên bốn artifacts baseline; trước khi nộp kết quả
+đầy đủ của pipeline cải tiến phải sinh lại 50 answers, chạy A/B thật và cập nhật báo cáo đồng bộ.

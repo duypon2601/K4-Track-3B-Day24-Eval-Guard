@@ -52,6 +52,14 @@ giá trị ví dụ này làm report.
 ## Giao diện setup và nguồn answers
 
 `build_pipeline()` trả `(search, reranker, top_k)`.
+Setup hiện giữ `parent_text` nguyên bản trong metadata của mỗi child có parent tương ứng.
+Ánh xạ parent được tạo riêng cho từng tài liệu, vì `parent_id` có thể trùng giữa các tài liệu.
+Các trường `source`, `parent_id`, `parent_text` không được auto-metadata từ enrichment ghi đè.
+`run_query` lấy tối đa `max(top_k, config.RERANK_CANDIDATES)` candidates sau rerank
+(mặc định 10), mở rộng child thành parent, bỏ context trùng và giữ tối đa `top_k` context
+(mặc định 3). Nếu metadata thiếu parent thì dùng text của result; nếu rerank rỗng thì giữ
+fallback top 3 search results. Không đọc reference/ground_truth để chọn context hoặc generation.
+
 `run_query(q, search, reranker, top_k, client=None)` trả
 `(answer, contexts, generation_mode, generation_model)`. Client OpenAI được reuse qua 50 câu,
 không khởi tạo lại cho mỗi query. `generation_mode` là `llm` hoặc

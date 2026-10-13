@@ -144,3 +144,54 @@ của RAGAS 0.1.22; answer_relevancy dùng strictness = 1 (một câu hỏi sinh
 không hỗ trợ n lớn hơn 1, nên metric này nhiễu hơn mặc định. Một lần chạy trước đó với evaluator
 gemini-3.5-flash-lite bị dừng ở khoảng 77% do hết quota và không được dùng trong báo cáo. Corpus thiếu
 hai tài liệu PDF scan, không ảnh hưởng 50 câu hỏi này nhưng là lỗ hổng của index.
+
+## Cải tiến sau baseline — Nguyễn Hồng Phi
+
+Ngày 13/10/2026 triển khai bước cải tiến đầu tiên trong `scripts/setup_answers.py`: giữ raw
+parent context của từng child, rerank 10 candidates rồi gom context trùng về tối đa 3 parent.
+Parent mapping được tạo riêng cho từng tài liệu để parent_id giống nhau không lấy nhầm policy;
+enrichment không được ghi đè source/parent metadata. Result không có parent vẫn dùng child text;
+rerank rỗng vẫn fallback top 3 search results. Prompt generation mới trả lời từng phần có
+bằng chứng và nêu phần thiếu, không suy đoán phần chưa retrieve được.
+
+Đây là thay đổi mã đã có 13 regression cases mới và 12 smoke-runner cases; kiểm tra offline đạt
+111 tests, 3 integration tests deselected và checker không còn failed checks. Các điểm, bottom 10,
+contexts và models trong phần phân tích baseline phía trên vẫn thuộc artifacts của Duy. Chưa kết luận điểm
+multi_hop tăng; query decomposition và ưu tiên phiên bản bằng metadata chưa được triển khai.
+
+### Kiểm chứng live 3 câu — 13/10/2026
+
+Chạy `scripts/run_rag_smoke.py --live --question-ids 22 33 39`, generation
+`gemini-3.5-flash-lite`, evaluator `gemini-3.1-flash-lite`, embedding `BAAI/bge-m3`. Corpus được
+enrich/index 107 chunks trên collection riêng `lab24_parent_smoke`; bốn artifacts baseline không
+đổi. Lượt chạy có một lỗi parse JSON enrichment dùng fallback, không thấy lỗi 429; hai PDF scan
+vẫn không có text layer và bị bỏ qua. Runner chấm lại baseline và improved cùng lượt; số dưới đây
+được lấy từ `artifacts/smoke_3q.json`, status `complete`, scope `smoke_only_not_50q`.
+
+| Câu | Mean baseline chấm lại | Mean improved | Delta |
+|---|---:|---:|---:|
+| 22 | 0.3333 | 0.9413 | +0.6080 |
+| 33 | 0.1250 | 0.5507 | +0.4257 |
+| 39 | 0.3985 | 0.6981 | +0.2995 |
+| **Mean 3 câu** | **0.2856** | **0.7300** | **+0.4444** |
+
+Đọc answer/context thực tế:
+- Câu 22: parent chứa đủ bảng phê duyệt, answer xác định Director cho 30 triệu và xác nhận cấu
+  hình từ CNTT; context recall tăng 0.3333 → 1.0. Answer chưa nhắc yêu cầu 3 báo giá trong reference.
+- Câu 33: answer mới tính đúng 19 ngày phép thay vì từ chối toàn bộ; vẫn không retrieve được phụ
+  cấp và chưa trả lời 1.500.000 VNĐ/tháng. Context precision vẫn 0, recall vẫn 0.5: prompt cải thiện
+  việc trả lời phần có bằng chứng, chưa giải quyết retrieval đa ý.
+- Câu 39: answer phân biệt đúng 8/12 ký tự và 90/120 ngày, không còn gán chu kỳ v2 cho v1;
+  faithfulness tăng 0.6667 → 1.0, recall tăng 0 → 1.0. V1 không có mục MFA nên answer nói không
+  tìm thấy, không suy đoán. Context precision vẫn 0 và answer relevancy giảm 0.9275 → 0.7922,
+  vì vậy không diễn giải mọi metric đều tăng hoặc bỏ qua kiểm tra thủ công.
+
+Kết quả này là tín hiệu tích cực cho ba câu yếu đã chọn, không chứng minh mean 50 câu tăng so với
+0.784 hoặc không có regression ở factual/adversarial. Chỉ một lượt evaluator, chưa đo phương sai;
+strictness answer relevancy vẫn 1. Chưa chạy lại Phase B/C. Ưu tiên tiếp theo là query decomposition
+để lấy đủ context cho câu 33, rồi chạy đánh giá đầy đủ trước khi thay artifacts baseline.
+
+Kế hoạch kiểm chứng: lưu riêng bản baseline, sinh lại 50 answers với pipeline mới, chạy Phase A
+và Phase B bằng runner thật vì nguồn A trong pairwise đã đổi, rồi cập nhật artifacts và báo cáo
+đồng bộ. So sánh mean/context precision/recall của multi_hop, kiểm tra thủ công các câu 22, 33, 39
+và bảo đảm factual/adversarial không bị suy giảm. Không chỉnh tay điểm hoặc source hashes.

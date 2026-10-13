@@ -32,6 +32,12 @@ mỗi key là list model IDs đã sắp xếp, không trùng, `[]` khi vai trò 
 tham gia phase. Checker so hash để phát hiện
 report cũ khi dữ liệu đầu vào đã đổi; hash không tự chứng minh đã gọi API.
 
+Source SHA-256 được tính trên bytes UTF-8 sau khi chuẩn hóa CRLF thành LF; ngoài xuống dòng,
+không chuẩn hóa khoảng trắng, thứ tự keys hoặc nội dung JSON. Exporter và checker dùng cùng
+`source_sha256` trong `src/experiment_support.py`. Hash baseline được sinh từ file LF vẫn giữ
+nguyên; checkout Windows chuyển CRLF không còn làm reports bị coi là stale. `.gitattributes`
+giữ JSON ở LF khi checkout và các JSON exporter mới ghi LF trên mọi hệ điều hành.
+
 - Generation: lấy từ `generation_model` của các answers có mode `llm`. Mỗi answer
   bắt buộc có `generation_mode` thuộc `llm`/`extractive_fallback` và
   `generation_model` là ID không trống với `llm`, hoặc `null` với fallback.

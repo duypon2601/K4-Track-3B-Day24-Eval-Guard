@@ -87,3 +87,23 @@ py -3.11 -m venv .venv-tests
 `requirements/requirements-test.txt` ghi dependencies trực tiếp; file `.lock.txt` khóa
 toàn bộ dependencies của tập test. Đây chỉ là lock unit test, không thay constraints hoặc
 cài đặt full runtime. Không commit virtualenv, key hoặc cache model.
+
+## Smoke test riêng cho cải tiến retrieval
+
+`requirements/requirements-rag-smoke.txt` chỉ cài phần RAG/RAGAS cho Phase A/B; không chứng minh
+NeMo, Presidio hoặc full Phase C đã sẵn sàng. Có thể dùng virtualenv riêng `.venv-smoke`, cài
+PyTorch CPU trước, rồi cài file này cùng `requirements/constraints-core.txt`. Trên Windows nên
+nâng pip trong virtualenv trước khi cài để tránh lỗi nhận diện tên package ở CPU wheel index.
+
+Khi key được cấu hình cục bộ, giữ model generation/evaluator giống baseline và chạy từ gốc repo:
+
+```powershell
+.\.venv-smoke\Scripts\python.exe scripts/run_rag_smoke.py --live --question-ids 22 33 39
+```
+
+Runner dùng collection Qdrant riêng `lab24_parent_smoke` và ghi `artifacts/smoke_3q.json`; không
+cho ghi đè bốn artifacts bắt buộc. Corpus vẫn được chunk/enrich/index đầy đủ, nên ba câu không
+đồng nghĩa chỉ ba API calls. Baseline và answers mới được chấm lại cùng evaluator trong một
+lượt để giảm sai lệch khi so với điểm baseline đã lưu. Kết quả chỉ phản ánh ba câu yếu đã chọn,
+không thay thế điểm 50 câu. Nếu evaluator lỗi sau generation, file giữ status
+`generated_answers_only` và không được diễn giải thành kết quả chấm hoàn chỉnh.

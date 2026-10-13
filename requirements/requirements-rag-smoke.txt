@@ -1,0 +1,14 @@
+pypdf>=4.0,<5
+python-dotenv>=1.0,<2
+underthesea>=6.8,<9
+rank-bm25==0.2.2
+qdrant-client>=1.9,<1.10
+sentence-transformers>=3.0,<6
+transformers>=4.41,<5
+ragas>=0.1.10,<0.2
+langchain-community>=0.2,<0.3
+langchain-openai>=0.1,<0.2
+datasets>=2.19,<3
+openai>=1.30,<2
+numpy>=1.26,<2
+jsonschema>=4.25,<5

@@ -1,14 +1,14 @@
 """Validate submission evidence, not just file existence. No network calls."""
 from __future__ import annotations
 
-import hashlib
 import math
 import re
 from datetime import datetime
 from pathlib import Path
 
 from config import ROOT_DIR
-from src.experiment_support import MODEL_ROLES, generation_models, model_ids, percentiles, read_json
+from src.experiment_support import (MODEL_ROLES, generation_models, model_ids, percentiles,
+                                    read_json, source_sha256)
 
 METRICS = ("faithfulness", "answer_relevancy", "context_precision", "context_recall")
 DISTRIBUTIONS = ("factual", "multi_hop", "adversarial")
@@ -85,7 +85,7 @@ def validate_metadata(report, source_paths):
         declared = meta["models"][role]
         require(model_ids(declared, role) == declared, f"{role} models must be sorted and unique.")
     for path in source_paths:
-        digest = hashlib.sha256(Path(path).read_bytes()).hexdigest()
+        digest = source_sha256(path)
         require(meta["source_sha256"].get(Path(path).name) == digest,
                 f"Stale experiment source: {Path(path).name}.")
 
